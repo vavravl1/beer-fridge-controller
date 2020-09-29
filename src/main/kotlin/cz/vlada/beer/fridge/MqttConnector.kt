@@ -1,0 +1,53 @@
+package cz.vlada.beer.fridge
+
+import org.eclipse.paho.client.mqttv3.IMqttActionListener
+import org.eclipse.paho.client.mqttv3.IMqttToken
+import org.eclipse.paho.client.mqttv3.MqttAsyncClient
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions
+import org.eclipse.paho.client.mqttv3.MqttMessage
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence
+import org.slf4j.LoggerFactory
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
+import kotlin.coroutines.suspendCoroutine
+
+class MqttConnector(mqttBrokerUrl: String, username: String, password: String) {
+    private val log = LoggerFactory.getLogger("cz.vlada.MqttListener")
+
+    private val client: MqttAsyncClient = MqttAsyncClient(mqttBrokerUrl, "beer_fridge_controller", MemoryPersistence())
+
+    init {
+        val connOpts = MqttConnectOptions()
+        connOpts.userName = username
+        connOpts.password = password.toCharArray()
+        connOpts.isAutomaticReconnect = true
+        connOpts.isCleanSession = true
+        client.connect(connOpts, null, object : IMqttActionListener {
+            override fun onSuccess(asyncActionToken: IMqttToken?) {
+                client.subscribe("node/#", 0) { topic, msg ->
+                    LastValuesRepository.add(topic, String(msg.payload))
+                }
+            }
+
+            override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
+                log.error("Unable to connect to mqtt broker, ", exception)
+            }
+        })
+    }
+
+    suspend fun publish(topic: String, msg: String) {
+        return suspendCoroutine { continuation ->
+            client.publish(topic, MqttMessage(msg.toByteArray()), null, object : IMqttActionListener {
+                override fun onSuccess(asyncActionToken: IMqttToken) {
+                    log.info("Message sent successfully")
+                    continuation.resume(Unit)
+                }
+
+                override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable) {
+                    log.error("Message sent failed")
+                    continuation.resumeWithException(exception)
+                }
+            })
+        }
+    }
+}
