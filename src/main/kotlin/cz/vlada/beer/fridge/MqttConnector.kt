@@ -11,8 +11,8 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-class MqttConnector(mqttBrokerUrl: String, username: String, password: String) {
-    private val log = LoggerFactory.getLogger("cz.vlada.MqttListener")
+class MqttConnector(mqttBrokerUrl: String, username: String, password: String, listener: FridgeMqttListener) {
+    private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.MqttListener")
 
     private val client: MqttAsyncClient = MqttAsyncClient(mqttBrokerUrl, "beer_fridge_controller", MemoryPersistence())
 
@@ -23,10 +23,15 @@ class MqttConnector(mqttBrokerUrl: String, username: String, password: String) {
         connOpts.isAutomaticReconnect = true
         connOpts.isCleanSession = true
         client.connect(connOpts, null, object : IMqttActionListener {
-            override fun onSuccess(asyncActionToken: IMqttToken?) {
-                client.subscribe("node/#", 0) { topic, msg ->
-                    LastValuesRepository.add(topic, String(msg.payload))
-                }
+            val topics = listener.getTopicsToListenTo()
+            val mqttListener = listener.createListener(::publish)
+            override fun onSuccess(asyncActionToken: IMqttToken) {
+                // node/Beer/thermometer/0:1/temperatured
+                client.subscribe(
+                    topics.toTypedArray(),
+                    topics.map { 0 }.toIntArray(),
+                    topics.map { mqttListener }.toTypedArray()
+                )
             }
 
             override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
@@ -35,7 +40,7 @@ class MqttConnector(mqttBrokerUrl: String, username: String, password: String) {
         })
     }
 
-    suspend fun publish(topic: String, msg: String) {
+    private suspend fun publish(topic: String, msg: String) {
         return suspendCoroutine { continuation ->
             client.publish(topic, MqttMessage(msg.toByteArray()), null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken) {
