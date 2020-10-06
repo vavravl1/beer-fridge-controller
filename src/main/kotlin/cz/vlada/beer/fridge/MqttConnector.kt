@@ -44,7 +44,7 @@ class MqttConnector(mqttBrokerUrl: String, username: String, password: String, l
         return suspendCoroutine { continuation ->
             client.publish(topic, MqttMessage(msg.toByteArray()), null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken) {
-                    log.info("Message sent successfully")
+//                    log.debug("Message sent successfully")
                     continuation.resume(Unit)
                 }
 

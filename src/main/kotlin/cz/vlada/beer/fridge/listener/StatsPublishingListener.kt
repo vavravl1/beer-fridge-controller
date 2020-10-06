@@ -14,20 +14,23 @@ class StatsPublishingListener : MqttListener {
         message: MqttMessage,
         publish: suspend (String, String) -> Unit
     ) = when (topic) {
-            RELAY_BEER_FRIDGE_TOPIC -> publish(
-                "node/BeerFridge/relay/0/status",
-                """"${String(message.payload)}""""
+        RELAY_BEER_FRIDGE_TOPIC -> {
+            val state = String(message.payload) == "on"
+            publish(
+                "node/BeerFridge/relay/0/state",
+                "$state"
             )
-            POWER_BEER_FRIDGE_TOPIC -> publish(
-                "node/BeerFridge/relay/0/power",
-                String(message.payload)
-            )
-            RELAY_TEMPERATURE_BEER_FRIDGE_TOPIC -> publish(
-                "node/BeerFridge/relay/0/temperature",
-                String(message.payload)
-            )
-            else -> Unit
         }
+        POWER_BEER_FRIDGE_TOPIC -> publish(
+            "node/BeerFridge/powermeter/0/power",
+            String(message.payload)
+        )
+        RELAY_TEMPERATURE_BEER_FRIDGE_TOPIC -> publish(
+            "node/BeerFridge/powermeter/0/temperature",
+            String(message.payload)
+        )
+        else -> Unit
+    }
 
     override fun getTopicsToListenTo(): List<String> = listOf(
         RELAY_BEER_FRIDGE_TOPIC,
