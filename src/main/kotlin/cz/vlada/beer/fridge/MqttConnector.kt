@@ -1,5 +1,6 @@
 package cz.vlada.beer.fridge
 
+import cz.vlada.beer.fridge.listener.DelegatingMqttListener
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttToken
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient
@@ -11,8 +12,8 @@ import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlin.coroutines.suspendCoroutine
 
-class MqttConnector(mqttBrokerUrl: String, username: String, password: String, listener: FridgeMqttListener) {
-    private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.MqttListener")
+class MqttConnector(mqttBrokerUrl: String, username: String, password: String, listener: DelegatingMqttListener) {
+    private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.listener.MqttListener")
 
     private val client: MqttAsyncClient = MqttAsyncClient(mqttBrokerUrl, "beer_fridge_controller", MemoryPersistence())
 
@@ -26,7 +27,6 @@ class MqttConnector(mqttBrokerUrl: String, username: String, password: String, l
             val topics = listener.getTopicsToListenTo()
             val mqttListener = listener.createListener(::publish)
             override fun onSuccess(asyncActionToken: IMqttToken) {
-                // node/Beer/thermometer/0:1/temperatured
                 client.subscribe(
                     topics.toTypedArray(),
                     topics.map { 0 }.toIntArray(),
