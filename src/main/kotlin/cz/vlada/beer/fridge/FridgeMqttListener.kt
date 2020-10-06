@@ -11,8 +11,11 @@ class FridgeMqttListener {
         const val SET_LOW_TOPIC = "node/Beer/thermometer/low/temperature/set"
         const val SET_HIGH_TOPIC = "node/Beer/thermometer/high/temperature/set"
         const val TEMPERATURE_TOPIC = "node/Beer/thermometer/0:1/temperature"
-        const val POWER_SWITCH_TOPIC = "node/PowerSwitch/power-switch/-/state/set"
+        const val POWER_SWITCH_TOPIC = "shellies/beer_fridge_shelly/relay/0/command"
     }
+
+    // vlada@LXCNAME:~$ mosquitto_pub -t "shellies/beer_fridge_shelly/relay/0/command" -m "on" -u client -P 5dehw6ufwgyxji5ehtrr3 -h 192.168.1.8
+    // vlada@LXCNAME:~$ mosquitto_pub -t "shellies/beer_fridge_shelly/relay/0/command" -m "off" -u client -P 5dehw6ufwgyxji5ehtrr3 -h 192.168.1.8
 
     private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.FridgeMqttListener")
 
@@ -34,10 +37,10 @@ class FridgeMqttListener {
                 TEMPERATURE_TOPIC -> {
                     if (msg > highTemperature) {
                         log.info("Turning fridge on - temperature: $msg, highTemperature: $highTemperature")
-                        publish(POWER_SWITCH_TOPIC, """"on"""")
+                        publish(POWER_SWITCH_TOPIC, "on")
                     } else if (msg < lowTemperature) {
                         log.info("Turning fridge off - temperature: $msg, lowTemperature: $lowTemperature")
-                        publish(POWER_SWITCH_TOPIC, """"off"""")
+                        publish(POWER_SWITCH_TOPIC, "off")
                     }
                 }
             }
