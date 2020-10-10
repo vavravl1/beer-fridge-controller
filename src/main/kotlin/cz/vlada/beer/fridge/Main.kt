@@ -6,7 +6,11 @@ import cz.vlada.beer.fridge.listener.StatsPublishingListener
 
 fun main(args: Array<String>) {
 
-    val mqttListener = DelegatingMqttListener(listOf(FridgeMqttListener(), StatsPublishingListener()))
+    val mqttListener = DelegatingMqttListener(listOf(
+        FridgeMqttListener("BeerFridge", 0),
+        FridgeMqttListener("BeerFreezer", 1),
+        StatsPublishingListener()
+    ))
 
     MqttConnector(
         System.getenv("MQTT_BROKER_URL"),
