@@ -6,11 +6,13 @@ import org.slf4j.LoggerFactory
 
 class FridgeMqttListener(
     temperatureNodeName: String,
+    thermometerName: String,
+    thermometerAddress: String,
     shellyRelayIndex: Int
 ) : MqttListener {
     private val setLowTemperatureTopic = "node/$temperatureNodeName/thermometer/low/temperature/set"
     private val setHighTemperatureTopic = "node/$temperatureNodeName/thermometer/high/temperature/set"
-    private val currentTemperatureTopic = "node/$temperatureNodeName/thermometer/0:1/temperature"
+    private val currentTemperatureTopic = "node/$temperatureNodeName/$thermometerName/$thermometerAddress/temperature"
     private val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/$shellyRelayIndex/command"
 
     private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.listener.FridgeMqttListener")

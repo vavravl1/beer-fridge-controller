@@ -7,8 +7,8 @@ import cz.vlada.beer.fridge.listener.StatsPublishingListener
 fun main(args: Array<String>) {
 
     val mqttListener = DelegatingMqttListener(listOf(
-        FridgeMqttListener("BeerFridge", 0),
-        FridgeMqttListener("BeerFreezer", 1),
+        FridgeMqttListener("BeerFridge", "probe-thermometer", "750301a2795d2028", 0),
+        FridgeMqttListener("BeerFreezer", "thermometer", "0:1", 1),
         StatsPublishingListener()
     ))
 
