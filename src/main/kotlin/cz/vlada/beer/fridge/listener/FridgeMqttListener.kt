@@ -1,6 +1,6 @@
 package cz.vlada.beer.fridge.listener
 
-import cz.vlada.beer.fridge.LastValuesRepository
+import cz.vlada.beer.fridge.repo.LastValuesRepository
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.slf4j.LoggerFactory
 
