@@ -5,8 +5,8 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.time.Instant
 import kotlinx.serialization.*
+import java.lang.Integer.max
 import java.time.Duration
-import java.util.*
 import kotlin.collections.HashMap
 
 object LastValuesRepository {
@@ -24,17 +24,13 @@ object LastValuesRepository {
 
     fun add(topic: String, value: String) {
         val storeValue = StoredValue(Instant.now(), value)
-        if(values[topic] != null && values[topic]!!.isNotEmpty()) {
-            val data = values[topic]!!
-            var newData = listOf(storeValue) + data
-            if(newData.last().stored.plus(oldestBufferRecord).isBefore(Instant.now())) {
-                newData = newData.subList(0, newData.size - 1)
-            }
-            values[topic] = newData
-        } else {
-            values[topic] = LinkedList(listOf(storeValue))
-        }
 
+        val data = values[topic] ?: emptyList()
+        var newData = listOf(storeValue) + data
+        if(newData.last().stored.plus(oldestBufferRecord).isBefore(Instant.now())) {
+            newData = newData.subList(0, max(0, newData.size - 2))
+        }
+        values[topic] = newData
         storeDataToDisk()
     }
 
