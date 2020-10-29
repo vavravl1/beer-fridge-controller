@@ -10,7 +10,7 @@ import java.time.Duration
 import kotlin.collections.HashMap
 
 object LastValuesRepository {
-    private val oldestBufferRecord = Duration.ofMinutes(5)
+    private val oldestBufferRecord = Duration.ofMinutes(10)
     private val persistedData = File("last-values.json")
     private val values: MutableMap<String, List<StoredValue>>
 

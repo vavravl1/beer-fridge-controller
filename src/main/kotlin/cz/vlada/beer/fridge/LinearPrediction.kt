@@ -21,7 +21,7 @@ object LinearPrediction {
         val valueA = pointA.value.toFloat()
         val valueB = pointB.value.toFloat()
         val timeA = pointA.stored.epochSecond
-        val timeB = pointA.stored.epochSecond
+        val timeB = pointB.stored.epochSecond
 
         val a = (valueA - valueB) / (timeA - timeB)
         val b = valueA - a * timeA
