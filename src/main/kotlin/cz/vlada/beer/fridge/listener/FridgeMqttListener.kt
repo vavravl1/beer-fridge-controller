@@ -54,7 +54,7 @@ class FridgeMqttListener(
                     )
                     log.debug(
                         "$temperatureNodeName  - temperature: $msg, " +
-                                "predicted = $predictedValue" +
+                                "predicted = $predictedValue " +
                                 "lowTemperature = $lowTemperature, " +
                                 "highTemperature = $highTemperature"
                     )
