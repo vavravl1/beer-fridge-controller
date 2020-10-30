@@ -20,7 +20,7 @@ class FridgeMqttListener(
     private val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/$shellyRelayIndex/command"
 
     companion object {
-        private val PREDICTION_WINDOW = Duration.ofMinutes(20)
+        private val PREDICTION_WINDOW = Duration.ofMinutes(15)
     }
 
     private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.listener.FridgeMqttListener")
