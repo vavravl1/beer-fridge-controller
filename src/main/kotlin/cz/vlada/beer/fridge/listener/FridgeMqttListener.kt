@@ -52,6 +52,12 @@ class FridgeMqttListener(
                         StoredValue(Instant.now(), actual),
                         Instant.now().plus(PREDICTION_WINDOW)
                     )
+                    log.debug(
+                        "$temperatureNodeName  - temperature: $msg, " +
+                                "predicted = $predictedValue" +
+                                "lowTemperature = $lowTemperature, " +
+                                "highTemperature = $highTemperature"
+                    )
                     if (predictedValue < lowTemperature) {
                         log.info(
                             "Turning $temperatureNodeName off - temperature: $msg, " +
