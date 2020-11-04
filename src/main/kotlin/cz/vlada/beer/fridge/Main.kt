@@ -1,6 +1,7 @@
 package cz.vlada.beer.fridge
 
 import cz.vlada.beer.fridge.listener.DelegatingMqttListener
+import cz.vlada.beer.fridge.listener.FridgeController
 import cz.vlada.beer.fridge.listener.FridgeMqttListener
 import cz.vlada.beer.fridge.listener.StatsPublishingListener
 import java.time.Duration
@@ -8,7 +9,7 @@ import java.time.Duration
 fun main(args: Array<String>) {
 
     val mqttListener = DelegatingMqttListener(listOf(
-        FridgeMqttListener("BeerFridge", "probe-thermometer", "750301a2795d2028", 0),
+        FridgeController(),
         FridgeMqttListener("BeerFreezer", "thermometer", "0:1", 1, Duration.ofMinutes(30)),
         StatsPublishingListener()
     ))

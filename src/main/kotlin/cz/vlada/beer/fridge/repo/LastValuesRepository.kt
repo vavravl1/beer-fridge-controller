@@ -35,7 +35,7 @@ object LastValuesRepository {
     }
 
     fun get(topic: String): StoredValue? = values[topic]?.firstOrNull()
-    fun getLast(topic: String): StoredValue? = values[topic]?.lastOrNull()
+    fun getEarliest(topic: String): StoredValue? = values[topic]?.lastOrNull()
 
     private fun storeDataToDisk() {
         persistedData.writeText(Json.encodeToString(values))

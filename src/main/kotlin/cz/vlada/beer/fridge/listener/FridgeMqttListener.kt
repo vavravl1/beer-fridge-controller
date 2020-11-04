@@ -45,7 +45,7 @@ class FridgeMqttListener(
                 highTemperature = msg
             }
             currentTemperatureTopic -> {
-                val last = LastValuesRepository.getLast(topic)
+                val last = LastValuesRepository.getEarliest(topic)
                 if(last != null) {
                     val predictedValue = LinearPrediction.getValueAtTime(
                         last,
