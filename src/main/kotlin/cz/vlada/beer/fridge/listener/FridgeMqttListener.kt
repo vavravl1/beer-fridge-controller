@@ -12,7 +12,8 @@ class FridgeMqttListener(
     private val temperatureNodeName: String,
     thermometerName: String,
     thermometerAddress: String,
-    shellyRelayIndex: Int
+    shellyRelayIndex: Int,
+    private val predictionWindow: Duration = DEFAULT_PREDICTION_WINDOW
 ) : MqttListener {
     private val setLowTemperatureTopic = "node/$temperatureNodeName/thermometer/low/temperature/set"
     private val setHighTemperatureTopic = "node/$temperatureNodeName/thermometer/high/temperature/set"
@@ -20,7 +21,7 @@ class FridgeMqttListener(
     private val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/$shellyRelayIndex/command"
 
     companion object {
-        private val PREDICTION_WINDOW = Duration.ofMinutes(15)
+        private val DEFAULT_PREDICTION_WINDOW = Duration.ofMinutes(15)
     }
 
     private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.listener.FridgeMqttListener")
@@ -45,12 +46,11 @@ class FridgeMqttListener(
             }
             currentTemperatureTopic -> {
                 val last = LastValuesRepository.getLast(topic)
-                val actual = String(message.payload)
                 if(last != null) {
                     val predictedValue = LinearPrediction.getValueAtTime(
                         last,
-                        StoredValue(Instant.now(), actual),
-                        Instant.now().plus(PREDICTION_WINDOW)
+                        StoredValue(Instant.now(), String(message.payload)),
+                        Instant.now().plus(predictionWindow)
                     )
                     log.debug(
                         "$temperatureNodeName  - temperature: $msg, " +
@@ -75,7 +75,6 @@ class FridgeMqttListener(
                 }
             }
         }
-        LastValuesRepository.add(topic, String(message.payload))
     }
 
     override fun getTopicsToListenTo() =
