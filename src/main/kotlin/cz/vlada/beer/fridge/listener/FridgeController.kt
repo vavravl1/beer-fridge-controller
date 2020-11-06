@@ -57,16 +57,16 @@ class FridgeController() : MqttListener {
         if (predictedValue < lowTemperature) {
             log.info(
                 "Turning BeerFridge off - probe: $probe, external: $external, " +
-                        "lowTemperature: $lowTemperature, " +
-                        "predicted = $predictedValue"
+                        "predicted = $predictedValue, " +
+                        "lowTemperature: $lowTemperature"
             )
             publish(powerSwitchTopic, "off")
         }
         if (predictedValue > highTemperature) {
             log.info(
                 "Turning BeerFridge on - probe: $probe, external: $external, " +
-                        "highTemperature: $highTemperature, " +
-                        "predicted = $predictedValue"
+                        "predicted = $predictedValue, " +
+                        "highTemperature: $highTemperature"
             )
             publish(powerSwitchTopic, "on")
         }
