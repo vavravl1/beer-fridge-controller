@@ -46,21 +46,17 @@ class FridgeController() : MqttListener {
 
     private suspend fun controlTemperature(publish: suspend (String, String) -> Unit) {
         val (probe, external) = getActualTemperatures() ?: return
-        val (before, now) = controlExternalTemperatureIfProbeWithinRange(probe, external)
-        val predictedValue = LinearPrediction.getValueAtTime(
-            before,
-            now,
-            Instant.now().plus(DEFAULT_PREDICTION_WINDOW)
-        )
+        val (predictedProbe, predictedExternal) = predictTemperatures(probe, external)
+        val predictedValue = selectTemperatureToControll(predictedProbe, predictedExternal)
         log.debug(
-            "BeerFridge  - temperature: ${now.value}, " +
+            "BeerFridge - probe: $probe, external: $external, " +
                     "predicted = $predictedValue " +
                     "lowTemperature = $lowTemperature, " +
                     "highTemperature = $highTemperature"
         )
         if (predictedValue < lowTemperature) {
             log.info(
-                "Turning BeerFridge off - temperature: ${now.value}, " +
+                "Turning BeerFridge off - probe: $probe, external: $external, " +
                         "lowTemperature: $lowTemperature, " +
                         "predicted = $predictedValue"
             )
@@ -68,42 +64,47 @@ class FridgeController() : MqttListener {
         }
         if (predictedValue > highTemperature) {
             log.info(
-                "Turning BeerFridge on - temperature: ${now.value}, " +
+                "Turning BeerFridge on - probe: $probe, external: $external, " +
                         "highTemperature: $highTemperature, " +
                         "predicted = $predictedValue"
             )
             publish(powerSwitchTopic, "on")
         }
+    }
 
+    private fun predictTemperatures(probe: Float, external: Float): Pair<Float, Float> {
+        val probeNow = StoredValue.fromNow(probe)
+        val externalNow = StoredValue.fromNow(external)
+        val earliestProbe = LastValuesRepository.getEarliest(probeTemperatureTopic) ?: probeNow
+        val earliestExternal = LastValuesRepository.getEarliest(externalTemperatureTopic) ?: externalNow
+        val predictionTime = Instant.now().plus(DEFAULT_PREDICTION_WINDOW)
+        return Pair(
+            LinearPrediction.getValueAtTime(
+                earliestProbe,
+                probeNow,
+                predictionTime
+            ), LinearPrediction.getValueAtTime(
+                earliestExternal,
+                externalNow,
+                predictionTime
+            )
+        )
     }
 
     private fun getActualTemperatures(): Pair<Float, Float>? {
         val probe = LastValuesRepository.get(probeTemperatureTopic)
         val external = LastValuesRepository.get(externalTemperatureTopic)
-        if(probe == null || external == null) {
+        if (probe == null || external == null) {
             return null
         }
         return Pair(probe.value.toFloat(), external.value.toFloat())
     }
 
-    private fun controlExternalTemperatureIfProbeWithinRange(
-        probe: Float,
-        external: Float
-    ): Pair<StoredValue, StoredValue> {
+    private fun selectTemperatureToControll(probe: Float, external: Float): Float {
         return if (probe > lowTemperature && probe < highTemperature) {
-            log.debug("BeerFridge controlled by external temperature, probe = $probe, external = $external")
-            val externalSV = StoredValue(Instant.now(), external.toString())
-            Pair(
-                LastValuesRepository.getEarliest(externalTemperatureTopic) ?: externalSV,
-                externalSV
-            )
+            external
         } else {
-            log.debug("BeerFridge controlled by probe temperature, probe = $probe, external = $external")
-            val probeSV = StoredValue(Instant.now(), probe.toString())
-            Pair(
-                LastValuesRepository.getEarliest(probeTemperatureTopic) ?: probeSV,
-                probeSV
-            )
+            probe
         }
     }
 
