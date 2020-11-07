@@ -15,6 +15,8 @@ class FridgeController() : MqttListener {
     private val externalTemperatureTopic = "node/BeerFridge/thermometer/0:1/temperature"
     private val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/0/command"
 
+    private var controlledByProbe: Boolean = false
+
     companion object {
         private val DEFAULT_PREDICTION_WINDOW = Duration.ofMinutes(15)
     }
@@ -47,29 +49,40 @@ class FridgeController() : MqttListener {
     private suspend fun controlTemperature(publish: suspend (String, String) -> Unit) {
         val (probe, external) = getActualTemperatures() ?: return
         val (predictedProbe, predictedExternal) = predictTemperatures(probe, external)
-        val predictedValue = selectTemperatureToControll(predictedProbe, predictedExternal)
-        log.debug(
-            "BeerFridge - probe: $probe, external: $external, " +
-                    "predicted = $predictedValue " +
-                    "lowTemperature = $lowTemperature, " +
-                    "highTemperature = $highTemperature"
-        )
-        if (predictedValue < lowTemperature) {
-            log.info(
-                "Turning BeerFridge off - probe: $probe, external: $external, " +
-                        "predicted = $predictedValue, " +
-                        "lowTemperature: $lowTemperature"
-            )
+        if(predictedProbe > highTemperature) {
+            logStatus(probe, external, predictedProbe, predictedExternal, "probe", "on")
+            publish(powerSwitchTopic, "on")
+            controlledByProbe = true
+        } else if(predictedProbe < lowTemperature) {
+            logStatus(probe, external, predictedProbe, predictedExternal, "probe", "off")
+            publish(powerSwitchTopic, "off")
+            controlledByProbe = false
+        } else if(predictedExternal > highTemperature && !controlledByProbe) {
+            logStatus(probe, external, predictedProbe, predictedExternal, "external", "on")
+            publish(powerSwitchTopic, "on")
+        } else if(predictedExternal < lowTemperature && !controlledByProbe) {
+            logStatus(probe, external, predictedProbe, predictedExternal, "external", "off")
             publish(powerSwitchTopic, "off")
         }
-        if (predictedValue > highTemperature) {
-            log.info(
-                "Turning BeerFridge on - probe: $probe, external: $external, " +
-                        "predicted = $predictedValue, " +
-                        "highTemperature: $highTemperature"
-            )
-            publish(powerSwitchTopic, "on")
-        }
+    }
+
+    private fun logStatus(
+        probe: Float,
+        external: Float,
+        predictedProbe: Float,
+        predictedExternal: Float,
+        sensor: String,
+        status: String
+    ) {
+        log.info(
+            "Turning BeerFridge $status ($sensor) - " +
+                    "probe: ${"%.2f".format(probe)}, " +
+                    "external: ${"%.2f".format(external)}, " +
+                    "predictedProbe = ${"%.2f".format(predictedProbe)}, " +
+                    "predictedExternal = ${"%.2f".format(predictedExternal)}, " +
+                    "highTemperature: ${"%.2f".format(highTemperature)} " +
+                    "lowTemperature: ${"%.2f".format(lowTemperature)}"
+        )
     }
 
     private fun predictTemperatures(probe: Float, external: Float): Pair<Float, Float> {
@@ -98,14 +111,6 @@ class FridgeController() : MqttListener {
             return null
         }
         return Pair(probe.value.toFloat(), external.value.toFloat())
-    }
-
-    private fun selectTemperatureToControll(probe: Float, external: Float): Float {
-        return if (probe > lowTemperature && probe < highTemperature) {
-            external
-        } else {
-            probe
-        }
     }
 
     override fun getTopicsToListenTo() =
