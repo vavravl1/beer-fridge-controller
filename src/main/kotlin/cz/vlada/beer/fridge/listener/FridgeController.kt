@@ -8,23 +8,19 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
 
-class FridgeController() : MqttListener {
-    private val setLowTemperatureTopic = "node/BeerFridge/thermometer/low/temperature/set"
-    private val setHighTemperatureTopic = "node/BeerFridge/thermometer/high/temperature/set"
-    private val probeTemperatureTopic = "node/BeerFridge/probe-thermometer/750301a2795d2028/temperature"
-    private val externalTemperatureTopic = "node/BeerFridge/thermometer/0:1/temperature"
-    private val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/0/command"
-
-    private var controlledByProbe: Boolean = false
-
-    companion object {
-        private val DEFAULT_PREDICTION_WINDOW = Duration.ofMinutes(15)
-    }
+object FridgeController : MqttListener {
+    private const val setLowTemperatureTopic = "node/BeerFridge/thermometer/low/temperature/set"
+    private const val setHighTemperatureTopic = "node/BeerFridge/thermometer/high/temperature/set"
+    private const val probeTemperatureTopic = "node/BeerFridge/probe-thermometer/750301a2795d2028/temperature"
+    private const val externalTemperatureTopic = "node/BeerFridge/thermometer/0:1/temperature"
+    private const val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/0/command"
+    private val predictionWindow = Duration.ofMinutes(15)
 
     private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.listener.FridgeMqttListener")
 
     private var lowTemperature: Float = (LastValuesRepository.get(setLowTemperatureTopic)?.value ?: "2F").toFloat()
     private var highTemperature: Float = (LastValuesRepository.get(setHighTemperatureTopic)?.value ?: "3F").toFloat()
+    private var controlledByProbe: Boolean = false
 
     override suspend fun messageArrived(
         topic: String,
@@ -90,7 +86,7 @@ class FridgeController() : MqttListener {
         val externalNow = StoredValue.fromNow(external)
         val earliestProbe = LastValuesRepository.getEarliest(probeTemperatureTopic) ?: probeNow
         val earliestExternal = LastValuesRepository.getEarliest(externalTemperatureTopic) ?: externalNow
-        val predictionTime = Instant.now().plus(DEFAULT_PREDICTION_WINDOW)
+        val predictionTime = Instant.now().plus(predictionWindow)
         return Pair(
             LinearPrediction.getValueAtTime(
                 earliestProbe,

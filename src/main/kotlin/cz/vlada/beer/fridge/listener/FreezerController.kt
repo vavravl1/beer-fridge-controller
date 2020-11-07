@@ -8,21 +8,13 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.Instant
 
-class FridgeMqttListener(
-    private val temperatureNodeName: String,
-    thermometerName: String,
-    thermometerAddress: String,
-    shellyRelayIndex: Int,
-    private val predictionWindow: Duration = DEFAULT_PREDICTION_WINDOW
-) : MqttListener {
-    private val setLowTemperatureTopic = "node/$temperatureNodeName/thermometer/low/temperature/set"
-    private val setHighTemperatureTopic = "node/$temperatureNodeName/thermometer/high/temperature/set"
-    private val currentTemperatureTopic = "node/$temperatureNodeName/$thermometerName/$thermometerAddress/temperature"
-    private val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/$shellyRelayIndex/command"
+object FreezerController : MqttListener {
+    private const val setLowTemperatureTopic = "node/BeerFreezer/thermometer/low/temperature/set"
+    private const val setHighTemperatureTopic = "node/BeerFreezer/thermometer/high/temperature/set"
+    private const val currentTemperatureTopic = "node/BeerFreezer/thermometer/0:1/temperature"
+    private const val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/1/command"
 
-    companion object {
-        private val DEFAULT_PREDICTION_WINDOW = Duration.ofMinutes(15)
-    }
+    private val predictionWindow = Duration.ofMinutes(30)
 
     private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.listener.FridgeMqttListener")
 
@@ -53,21 +45,21 @@ class FridgeMqttListener(
                         Instant.now().plus(predictionWindow)
                     )
                     log.debug(
-                        "$temperatureNodeName  - temperature: $msg, " +
+                        "BeerFreezer - temperature: $msg, " +
                                 "predicted = $predictedValue " +
                                 "lowTemperature = $lowTemperature, " +
                                 "highTemperature = $highTemperature"
                     )
                     if (predictedValue < lowTemperature) {
                         log.info(
-                            "Turning $temperatureNodeName off - temperature: $msg, " +
+                            "Turning BeerFreezer off - temperature: $msg, " +
                                     "lowTemperature: $lowTemperature, " +
                                     "predicted = $predictedValue")
                         publish(powerSwitchTopic, "off")
                     }
                     if (predictedValue > highTemperature) {
                         log.info(
-                            "Turning $temperatureNodeName on - temperature: $msg, " +
+                            "Turning BeerFreezer on - temperature: $msg, " +
                                     "highTemperature: $highTemperature, " +
                                     "predicted = $predictedValue")
                         publish(powerSwitchTopic, "on")
