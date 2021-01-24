@@ -9,17 +9,20 @@ import java.time.Duration
 import java.time.Instant
 
 object FridgeController : MqttListener {
+    private const val setColdTemperatureTopic = "node/BeerFridge/thermometer/cold/temperature/set"
     private const val setLowTemperatureTopic = "node/BeerFridge/thermometer/low/temperature/set"
     private const val setHighTemperatureTopic = "node/BeerFridge/thermometer/high/temperature/set"
     private const val probeTemperatureTopic = "node/BeerFridge/probe-thermometer/750301a2795d2028/temperature"
     private const val externalTemperatureTopic = "node/BeerFridge/thermometer/0:1/temperature"
     private const val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/0/command"
+    private const val heatingPadTopic = "node/BeerFridge/power-relay/-/state/set"
     private val predictionWindow = Duration.ofMinutes(15)
 
     private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.listener.FridgeMqttListener")
 
-    private var lowTemperature: Float = (LastValuesRepository.get(setLowTemperatureTopic)?.value ?: "2F").toFloat()
     private var highTemperature: Float = (LastValuesRepository.get(setHighTemperatureTopic)?.value ?: "3F").toFloat()
+    private var lowTemperature: Float = (LastValuesRepository.get(setLowTemperatureTopic)?.value ?: "2F").toFloat()
+    private var coldTemperature: Float = (LastValuesRepository.get(setColdTemperatureTopic)?.value ?: "-5F").toFloat()
     private var controlledByProbe: Boolean = false
 
     override suspend fun messageArrived(
@@ -45,20 +48,47 @@ object FridgeController : MqttListener {
     private suspend fun controlTemperature(publish: suspend (String, String) -> Unit) {
         val (probe, external) = getActualTemperatures() ?: return
         val (predictedProbe, predictedExternal) = predictTemperatures(probe, external)
-        if(predictedProbe > highTemperature) {
-            logStatus(probe, external, predictedProbe, predictedExternal, "probe", "on")
+        controllFridge(probe, external, predictedProbe, predictedExternal, publish)
+        controllHeatingPad(probe, external, predictedProbe, predictedExternal, publish)
+    }
+
+    private suspend fun controllFridge(
+        probe: Float,
+        external: Float,
+        predictedProbe: Float,
+        predictedExternal: Float,
+        publish: suspend (String, String) -> Unit
+    ) {
+        if (predictedProbe > highTemperature) {
+            logStatus(probe, external, predictedProbe, predictedExternal, "probe", "fridge on")
             publish(powerSwitchTopic, "on")
             controlledByProbe = true
-        } else if(predictedProbe < lowTemperature) {
-            logStatus(probe, external, predictedProbe, predictedExternal, "probe", "off")
+        } else if (predictedProbe < lowTemperature) {
+            logStatus(probe, external, predictedProbe, predictedExternal, "probe", "fridge off")
             publish(powerSwitchTopic, "off")
             controlledByProbe = false
-        } else if(predictedExternal > highTemperature && !controlledByProbe) {
-            logStatus(probe, external, predictedProbe, predictedExternal, "external", "on")
+        } else if (predictedExternal > highTemperature && !controlledByProbe) {
+            logStatus(probe, external, predictedProbe, predictedExternal, "external", "fridge on")
             publish(powerSwitchTopic, "on")
-        } else if(predictedExternal < lowTemperature && !controlledByProbe) {
-            logStatus(probe, external, predictedProbe, predictedExternal, "external", "off")
+        } else if (predictedExternal < lowTemperature && !controlledByProbe) {
+            logStatus(probe, external, predictedProbe, predictedExternal, "external", "fridge off")
             publish(powerSwitchTopic, "off")
+        }
+    }
+
+    private suspend fun controllHeatingPad(
+        probe: Float,
+        external: Float,
+        predictedProbe: Float,
+        predictedExternal: Float,
+        publish: suspend (String, String) -> Unit
+    ) {
+        if (predictedProbe > lowTemperature) {
+            publish(heatingPadTopic, "on")
+            logStatus(probe, external, predictedProbe, predictedExternal, "probe", "heating pad on")
+        } else if (predictedProbe < coldTemperature) {
+            publish(heatingPadTopic, "off")
+            logStatus(probe, external, predictedProbe, predictedExternal, "probe", "heating pad off")
         }
     }
 
@@ -71,13 +101,14 @@ object FridgeController : MqttListener {
         status: String
     ) {
         log.info(
-            "Turning BeerFridge $status ($sensor) - " +
+            "Turning $status ($sensor) - " +
                     "probe: ${"%.2f".format(probe)}, " +
                     "external: ${"%.2f".format(external)}, " +
                     "predictedProbe = ${"%.2f".format(predictedProbe)}, " +
                     "predictedExternal = ${"%.2f".format(predictedExternal)}, " +
                     "highTemperature: ${"%.2f".format(highTemperature)} " +
-                    "lowTemperature: ${"%.2f".format(lowTemperature)}"
+                    "lowTemperature: ${"%.2f".format(lowTemperature)} " +
+                    "coldTemperature: ${"%.2f".format(coldTemperature)}"
         )
     }
 
