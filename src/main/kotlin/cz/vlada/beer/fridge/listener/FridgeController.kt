@@ -83,10 +83,10 @@ object FridgeController : MqttListener {
         predictedExternal: Float,
         publish: suspend (String, String) -> Unit
     ) {
-        if (predictedProbe > lowTemperature) {
+        if (predictedProbe < coldTemperature) {
             publish(heatingPadTopic, "on")
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "heating pad on")
-        } else if (predictedProbe < coldTemperature) {
+        } else if (predictedProbe > lowTemperature) {
             publish(heatingPadTopic, "off")
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "heating pad off")
         }
