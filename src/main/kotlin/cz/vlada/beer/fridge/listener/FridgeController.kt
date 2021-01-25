@@ -15,7 +15,7 @@ object FridgeController : MqttListener {
     private const val probeTemperatureTopic = "node/BeerFridge/probe-thermometer/750301a2795d2028/temperature"
     private const val externalTemperatureTopic = "node/BeerFridge/thermometer/0:1/temperature"
     private const val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/0/command"
-    private const val heatingPadTopic = "node/BeerFridge/power-relay/-/state/set"
+    private const val heatingPadTopic = "node/BeerFridge/relay/0:0/state/set"
     private val predictionWindow = Duration.ofMinutes(15)
 
     private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.listener.FridgeMqttListener")
@@ -32,12 +32,16 @@ object FridgeController : MqttListener {
     ) {
         val msg = String(message.payload).toFloat()
         when (topic) {
+            setColdTemperatureTopic -> {
+                log.info("Setting BeerFridge coldTemperature to $msg")
+                coldTemperature = msg
+            }
             setLowTemperatureTopic -> {
-                log.info("Setting lowTemperature to $msg")
+                log.info("Setting BeerFridge lowTemperature to $msg")
                 lowTemperature = msg
             }
             setHighTemperatureTopic -> {
-                log.info("Setting highTemperature to $msg")
+                log.info("Setting BeerFridge highTemperature to $msg")
                 highTemperature = msg
             }
             probeTemperatureTopic -> controlTemperature(publish)
@@ -84,10 +88,10 @@ object FridgeController : MqttListener {
         publish: suspend (String, String) -> Unit
     ) {
         if (predictedProbe < coldTemperature) {
-            publish(heatingPadTopic, "on")
+            publish(heatingPadTopic, "true")
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "heating pad on")
         } else if (predictedProbe > lowTemperature) {
-            publish(heatingPadTopic, "off")
+            publish(heatingPadTopic, "false")
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "heating pad off")
         }
     }
@@ -141,5 +145,11 @@ object FridgeController : MqttListener {
     }
 
     override fun getTopicsToListenTo() =
-        listOf(probeTemperatureTopic, externalTemperatureTopic, setLowTemperatureTopic, setHighTemperatureTopic)
+        listOf(
+            probeTemperatureTopic,
+            externalTemperatureTopic,
+            setLowTemperatureTopic,
+            setHighTemperatureTopic,
+            setColdTemperatureTopic
+        )
 }
