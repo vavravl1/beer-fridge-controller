@@ -13,7 +13,7 @@ object FridgeController : MqttListener {
     private const val setLowTemperatureTopic = "node/BeerFridge/thermometer/low/temperature/set"
     private const val setHighTemperatureTopic = "node/BeerFridge/thermometer/high/temperature/set"
     private const val probeTemperatureTopic = "node/BeerFridge/probe-thermometer/750301a2795d2028/temperature"
-    private const val externalTemperatureTopic = "node/BeerFridge/thermometer/0:1/temperature"
+    private const val externalTemperatureTopic = "node/BeerFridge/thermometer/0:0/temperature"
     private const val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/0/command"
     private const val heatingPadTopic = "node/BeerFridge/relay/0:0/state/set"
     private val predictionWindow = Duration.ofMinutes(15)
