@@ -44,7 +44,7 @@ object FridgeController : MqttListener {
                 highTemperature = msg
             }
             probeTemperatureTopic -> controlTemperature(publish)
-            externalTemperatureTopic -> controlTemperature(publish)
+//            externalTemperatureTopic -> controlTemperature(publish)
         }
     }
 

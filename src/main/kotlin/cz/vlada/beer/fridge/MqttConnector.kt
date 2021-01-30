@@ -23,9 +23,10 @@ class MqttConnector(mqttBrokerUrl: String, username: String, password: String, l
         connOpts.password = password.toCharArray()
         connOpts.isAutomaticReconnect = true
         connOpts.isCleanSession = true
+        client.setManualAcks(true)
         client.connect(connOpts, null, object : IMqttActionListener {
             val topics = listener.getTopicsToListenTo()
-            val mqttListener = listener.createListener(::publish)
+            val mqttListener = listener.createListener(client, ::publish)
             override fun onSuccess(asyncActionToken: IMqttToken) {
                 client.subscribe(
                     topics.toTypedArray(),
@@ -44,7 +45,6 @@ class MqttConnector(mqttBrokerUrl: String, username: String, password: String, l
         return suspendCoroutine { continuation ->
             client.publish(topic, MqttMessage(msg.toByteArray()), null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken) {
-//                    log.debug("Message sent successfully")
                     continuation.resume(Unit)
                 }
 
