@@ -2,7 +2,6 @@ package cz.vlada.beer.fridge.listener
 
 import cz.vlada.beer.fridge.LinearPrediction
 import cz.vlada.beer.fridge.repo.LastValuesRepository
-import cz.vlada.beer.fridge.repo.StoredValue
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -51,7 +50,7 @@ object FridgeController : MqttListener {
 
     private suspend fun controlTemperature(publish: suspend (String, String) -> Unit) {
         val (probe, external) = getActualTemperatures() ?: return
-        val (predictedProbe, predictedExternal) = predictTemperatures(probe, external)
+        val (predictedProbe, predictedExternal) = predictTemperatures()
         controllFridge(probe, external, predictedProbe, predictedExternal, publish)
         controllHeatingPad(probe, external, predictedProbe, predictedExternal, publish)
     }
@@ -116,20 +115,17 @@ object FridgeController : MqttListener {
         )
     }
 
-    private fun predictTemperatures(probe: Float, external: Float): Pair<Float, Float> {
-        val probeNow = StoredValue.fromNow(probe)
-        val externalNow = StoredValue.fromNow(external)
-        val earliestProbe = LastValuesRepository.getEarliest(probeTemperatureTopic) ?: probeNow
-        val earliestExternal = LastValuesRepository.getEarliest(externalTemperatureTopic) ?: externalNow
+    private fun predictTemperatures(): Pair<Float, Float> {
         val predictionTime = Instant.now().plus(predictionWindow)
+        val probeHistory = LastValuesRepository.getAll(probeTemperatureTopic)
+        val externalHistory = LastValuesRepository.getAll(externalTemperatureTopic)
+
         return Pair(
             LinearPrediction.getValueAtTime(
-                earliestProbe,
-                probeNow,
+                probeHistory,
                 predictionTime
             ), LinearPrediction.getValueAtTime(
-                earliestExternal,
-                externalNow,
+                externalHistory,
                 predictionTime
             )
         )

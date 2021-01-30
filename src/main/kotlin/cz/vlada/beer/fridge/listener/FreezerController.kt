@@ -2,7 +2,6 @@ package cz.vlada.beer.fridge.listener
 
 import cz.vlada.beer.fridge.LinearPrediction
 import cz.vlada.beer.fridge.repo.LastValuesRepository
-import cz.vlada.beer.fridge.repo.StoredValue
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.slf4j.LoggerFactory
 import java.time.Duration
@@ -37,11 +36,10 @@ object FreezerController : MqttListener {
                 highTemperature = msg
             }
             currentTemperatureTopic -> {
-                val last = LastValuesRepository.getEarliest(topic)
-                if(last != null) {
+                val temperatureHistory = LastValuesRepository.getAll(topic)
+                if(temperatureHistory.isNotEmpty()) {
                     val predictedValue = LinearPrediction.getValueAtTime(
-                        last,
-                        StoredValue(Instant.now(), String(message.payload)),
+                        temperatureHistory,
                         Instant.now().plus(predictionWindow)
                     )
                     log.debug(

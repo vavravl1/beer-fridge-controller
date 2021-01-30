@@ -3,6 +3,7 @@ package cz.vlada.beer.fridge.listener
 import cz.vlada.beer.fridge.repo.LastValuesRepository
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.eclipse.paho.client.mqttv3.IMqttMessageListener
 
 class DelegatingMqttListener(

@@ -21,6 +21,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.0.0")
     implementation("org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.2")
     implementation("ch.qos.logback:logback-classic:1.2.3")
+    implementation("org.apache.commons:commons-math3:3.6.1")
 
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.assertj:assertj-core:3.6.1")
