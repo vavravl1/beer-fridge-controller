@@ -64,19 +64,20 @@ object FridgeController : MqttListener {
     ) {
         if (predictedProbe > highTemperature) {
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "fridge on")
-            publish(powerSwitchTopic, "on")
+            LastValuesRepository.add(powerSwitchTopic, "on")
             controlledByProbe = true
         } else if (predictedProbe < lowTemperature) {
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "fridge off")
-            publish(powerSwitchTopic, "off")
+            LastValuesRepository.add(powerSwitchTopic, "off")
             controlledByProbe = false
         } else if (predictedExternal > highTemperature && !controlledByProbe) {
             logStatus(probe, external, predictedProbe, predictedExternal, "external", "fridge on")
-            publish(powerSwitchTopic, "on")
+            LastValuesRepository.add(powerSwitchTopic, "on")
         } else if (predictedExternal < lowTemperature && !controlledByProbe) {
             logStatus(probe, external, predictedProbe, predictedExternal, "external", "fridge off")
-            publish(powerSwitchTopic, "off")
+            LastValuesRepository.add(powerSwitchTopic, "off")
         }
+        publish(powerSwitchTopic, LastValuesRepository.get(powerSwitchTopic)?.value ?: "off")
     }
 
     private suspend fun controllHeatingPad(
@@ -87,12 +88,13 @@ object FridgeController : MqttListener {
         publish: suspend (String, String) -> Unit
     ) {
         if (predictedProbe < coldTemperature) {
-            publish(heatingPadTopic, "true")
+            LastValuesRepository.add(heatingPadTopic, "true")
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "heating pad on")
         } else if (predictedProbe > lowTemperature) {
-            publish(heatingPadTopic, "false")
+            LastValuesRepository.add(heatingPadTopic, "false")
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "heating pad off")
         }
+        publish(heatingPadTopic, LastValuesRepository.get(heatingPadTopic)?.value ?: "false")
     }
 
     private fun logStatus(
