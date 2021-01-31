@@ -24,6 +24,9 @@ object FridgeController : MqttListener {
     private var coldTemperature: Float = (LastValuesRepository.get(setColdTemperatureTopic)?.value ?: "-5F").toFloat()
     private var controlledByProbe: Boolean = false
 
+    private var lastControllerAction: Instant = Instant.EPOCH
+    private val controllerNoopDelay = Duration.ofSeconds(5)
+
     override suspend fun messageArrived(
         topic: String,
         message: MqttMessage,
@@ -44,18 +47,23 @@ object FridgeController : MqttListener {
                 highTemperature = msg
             }
             probeTemperatureTopic -> controlTemperature(publish)
-//            externalTemperatureTopic -> controlTemperature(publish)
+            externalTemperatureTopic -> controlTemperature(publish)
         }
     }
 
     private suspend fun controlTemperature(publish: suspend (String, String) -> Unit) {
+
+        if(lastControllerAction.plus(controllerNoopDelay).isAfter(Instant.now())) {
+            return
+        }
+        lastControllerAction = Instant.now()
         val (probe, external) = getActualTemperatures() ?: return
         val (predictedProbe, predictedExternal) = predictTemperatures()
-        controllFridge(probe, external, predictedProbe, predictedExternal, publish)
-        controllHeatingPad(probe, external, predictedProbe, predictedExternal, publish)
+        controlFridge(probe, external, predictedProbe, predictedExternal, publish)
+        controlHeatPad(probe, external, predictedProbe, predictedExternal, publish)
     }
 
-    private suspend fun controllFridge(
+    private suspend fun controlFridge(
         probe: Float,
         external: Float,
         predictedProbe: Float,
@@ -80,7 +88,7 @@ object FridgeController : MqttListener {
         publish(powerSwitchTopic, LastValuesRepository.get(powerSwitchTopic)?.value ?: "off")
     }
 
-    private suspend fun controllHeatingPad(
+    private suspend fun controlHeatPad(
         probe: Float,
         external: Float,
         predictedProbe: Float,
