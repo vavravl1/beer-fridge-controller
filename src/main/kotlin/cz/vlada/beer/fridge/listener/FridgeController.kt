@@ -22,7 +22,6 @@ object FridgeController : MqttListener {
     private var highTemperature: Float = (LastValuesRepository.get(setHighTemperatureTopic)?.value ?: "3F").toFloat()
     private var lowTemperature: Float = (LastValuesRepository.get(setLowTemperatureTopic)?.value ?: "2F").toFloat()
     private var coldTemperature: Float = (LastValuesRepository.get(setColdTemperatureTopic)?.value ?: "-5F").toFloat()
-    private var controlledByProbe: Boolean = false
 
     private var lastControllerAction: Instant = Instant.EPOCH
     private val controllerNoopDelay = Duration.ofSeconds(5)
@@ -52,10 +51,10 @@ object FridgeController : MqttListener {
     }
 
     private suspend fun controlTemperature(publish: suspend (String, String) -> Unit) {
-
         if(lastControllerAction.plus(controllerNoopDelay).isAfter(Instant.now())) {
             return
         }
+
         lastControllerAction = Instant.now()
         val (probe, external) = getActualTemperatures() ?: return
         val (predictedProbe, predictedExternal) = predictTemperatures()
@@ -73,15 +72,13 @@ object FridgeController : MqttListener {
         if (predictedProbe > highTemperature) {
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "fridge on")
             LastValuesRepository.add(powerSwitchTopic, "on")
-            controlledByProbe = true
         } else if (predictedProbe < lowTemperature) {
             logStatus(probe, external, predictedProbe, predictedExternal, "probe", "fridge off")
             LastValuesRepository.add(powerSwitchTopic, "off")
-            controlledByProbe = false
-        } else if (predictedExternal > highTemperature && !controlledByProbe) {
+        } else if (predictedExternal > highTemperature) {
             logStatus(probe, external, predictedProbe, predictedExternal, "external", "fridge on")
             LastValuesRepository.add(powerSwitchTopic, "on")
-        } else if (predictedExternal < lowTemperature && !controlledByProbe) {
+        } else if (predictedExternal < lowTemperature) {
             logStatus(probe, external, predictedProbe, predictedExternal, "external", "fridge off")
             LastValuesRepository.add(powerSwitchTopic, "off")
         }
