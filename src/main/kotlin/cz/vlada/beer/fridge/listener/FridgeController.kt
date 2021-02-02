@@ -24,7 +24,7 @@ object FridgeController : MqttListener {
     private var coldTemperature: Float = (LastValuesRepository.get(setColdTemperatureTopic)?.value ?: "-5F").toFloat()
 
     private var lastControllerAction: Instant = Instant.EPOCH
-    private val controllerNoopDelay = Duration.ofSeconds(5)
+    private val controllerNoopDelay = Duration.ofSeconds(15)
 
     override suspend fun messageArrived(
         topic: String,
