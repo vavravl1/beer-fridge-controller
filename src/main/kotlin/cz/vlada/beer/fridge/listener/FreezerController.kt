@@ -13,7 +13,7 @@ object FreezerController : MqttListener {
     private const val currentTemperatureTopic = "node/BeerFreezer/thermometer/0:1/temperature"
     private const val powerSwitchTopic = "shellies/beer_fridge_shelly/relay/1/command"
 
-    private val predictionWindow = Duration.ofMinutes(30)
+    private val predictionWindow = Duration.ofMinutes(10)
 
     private val log = LoggerFactory.getLogger("cz.vlada.beer.fridge.listener.FridgeMqttListener")
 
