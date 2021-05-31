@@ -14,7 +14,7 @@ class StatsPublishingListener : MqttListener {
     override suspend fun messageArrived(
         topic: String,
         message: MqttMessage,
-        publish: suspend (String, String) -> Unit
+        publish: MqttPublisher
     ) = when (topic) {
         RELAY_BEER_FRIDGE_TOPIC_0 -> {
             publish(

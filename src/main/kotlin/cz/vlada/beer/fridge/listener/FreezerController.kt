@@ -18,7 +18,7 @@ object FreezerController : MqttListener {
     override suspend fun messageArrived(
         topic: String,
         message: MqttMessage,
-        publish: suspend (String, String) -> Unit
+        publish: MqttPublisher
     ) {
         val msg = String(message.payload).toFloat()
         when (topic) {
