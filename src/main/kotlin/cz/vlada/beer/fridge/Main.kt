@@ -1,16 +1,14 @@
 package cz.vlada.beer.fridge
 
-import cz.vlada.beer.fridge.listener.DelegatingMqttListener
-import cz.vlada.beer.fridge.listener.FridgeController
-import cz.vlada.beer.fridge.listener.FreezerController
-import cz.vlada.beer.fridge.listener.StatsPublishingListener
+import cz.vlada.beer.fridge.listener.*
 
 fun main(args: Array<String>) {
 
     val mqttListener = DelegatingMqttListener(listOf(
         FridgeController,
         FreezerController,
-        StatsPublishingListener()
+        StatsPublishingListener(),
+        ISpindel,
     ))
 
     MqttConnector(

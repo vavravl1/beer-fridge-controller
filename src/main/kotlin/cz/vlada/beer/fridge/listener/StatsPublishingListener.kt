@@ -1,5 +1,7 @@
 package cz.vlada.beer.fridge.listener
 
+import cz.vlada.beer.fridge.listener.MessageExtentions.asString
+import cz.vlada.beer.fridge.listener.MessageExtentions.isOn
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
 class StatsPublishingListener : MqttListener {
@@ -56,7 +58,4 @@ class StatsPublishingListener : MqttListener {
         POWER_BEER_FRIDGE_TOPIC_1,
         RELAY_TEMPERATURE_BEER_FRIDGE_TOPIC
     )
-
-    private fun MqttMessage.asString() = String(this.payload)
-    private fun MqttMessage.isOn() = this.asString() == "on"
 }
