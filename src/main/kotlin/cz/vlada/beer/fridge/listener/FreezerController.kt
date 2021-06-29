@@ -78,6 +78,10 @@ object FreezerController : MqttListener {
         emergencyTurnFreezerOffJob?.cancel()
         emergencyTurnFreezerOffJob = GlobalScope.launch {
             delay(emergencyTurnFreezerOffTimeout)
+            log.info(
+                "Emergency turning BeerFreezer off. " +
+                        "No message from sensors for more than $emergencyTurnFreezerOffTimeout"
+            )
             publish(powerSwitchTopic, "off")
             emergencyTurnFreezerOffMutex.withLock {
                 emergencyTurnFreezerOffJob = null
