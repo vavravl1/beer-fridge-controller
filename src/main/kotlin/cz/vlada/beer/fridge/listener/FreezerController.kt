@@ -1,9 +1,18 @@
 package cz.vlada.beer.fridge.listener
 
 import cz.vlada.beer.fridge.repo.LastValuesRepository
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.eclipse.paho.client.mqttv3.MqttMessage
 import org.slf4j.LoggerFactory
+import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 object FreezerController : MqttListener {
     private const val setLowTemperatureTopic = "node/BeerFreezer/thermometer/low/temperature/set"
     private const val setHighTemperatureTopic = "node/BeerFreezer/thermometer/high/temperature/set"
@@ -14,6 +23,10 @@ object FreezerController : MqttListener {
 
     private var lowTemperature: Float = (LastValuesRepository.get(setLowTemperatureTopic)?.value ?: "2F").toFloat()
     private var highTemperature: Float = (LastValuesRepository.get(setHighTemperatureTopic)?.value ?: "3F").toFloat()
+
+    private val emergencyTurnFreezerOffTimeout: Duration = Duration.minutes(10)
+    private val emergencyTurnFreezerOffMutex = Mutex()
+    private var emergencyTurnFreezerOffJob: Job? = null
 
     override suspend fun messageArrived(
         topic: String,
@@ -41,6 +54,7 @@ object FreezerController : MqttListener {
                         "Turning BeerFreezer off - temperature: $msg, " +
                                 "lowTemperature: $lowTemperature "
                     )
+                    stopEmergencyFreezerTurnOff()
                     publish(powerSwitchTopic, "off")
                 }
                 if (msg > highTemperature) {
@@ -48,8 +62,25 @@ object FreezerController : MqttListener {
                         "Turning BeerFreezer on - temperature: $msg, " +
                                 "highTemperature: $highTemperature, "
                     )
+                    startEmergencyFreezerTurnOff(publish)
                     publish(powerSwitchTopic, "on")
                 }
+            }
+        }
+    }
+
+    private suspend fun stopEmergencyFreezerTurnOff() = emergencyTurnFreezerOffMutex.withLock {
+        emergencyTurnFreezerOffJob?.cancel()
+        emergencyTurnFreezerOffJob = null
+    }
+
+    private suspend fun startEmergencyFreezerTurnOff(publish: MqttPublisher) = emergencyTurnFreezerOffMutex.withLock {
+        emergencyTurnFreezerOffJob?.cancel()
+        emergencyTurnFreezerOffJob = GlobalScope.launch {
+            delay(emergencyTurnFreezerOffTimeout)
+            publish(powerSwitchTopic, "off")
+            emergencyTurnFreezerOffMutex.withLock {
+                emergencyTurnFreezerOffJob = null
             }
         }
     }

@@ -1,7 +1,9 @@
 package cz.vlada.beer.fridge
 
 import cz.vlada.beer.fridge.listener.*
+import kotlin.time.ExperimentalTime
 
+@ExperimentalTime
 fun main(args: Array<String>) {
 
     val mqttListener = DelegatingMqttListener(listOf(
