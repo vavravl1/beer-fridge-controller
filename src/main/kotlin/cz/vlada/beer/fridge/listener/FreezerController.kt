@@ -54,39 +54,39 @@ object FreezerController : MqttListener {
                         "Turning BeerFreezer off - temperature: $msg, " +
                                 "lowTemperature: $lowTemperature "
                     )
-                    stopEmergencyFreezerTurnOff()
-                    publish(powerSwitchTopic, "off")
+                    turnFreezerOff(publish)
                 }
                 if (msg > highTemperature) {
                     log.info(
                         "Turning BeerFreezer on - temperature: $msg, " +
                                 "highTemperature: $highTemperature, "
                     )
-                    startEmergencyFreezerTurnOff(publish)
-                    publish(powerSwitchTopic, "on")
+                    turnFreezerOn(publish)
                 }
             }
         }
     }
 
-    private suspend fun stopEmergencyFreezerTurnOff() = emergencyTurnFreezerOffMutex.withLock {
+    private suspend fun turnFreezerOff(publish: MqttPublisher) = emergencyTurnFreezerOffMutex.withLock {
         emergencyTurnFreezerOffJob?.cancel()
         emergencyTurnFreezerOffJob = null
+        publish(powerSwitchTopic, "off")
     }
 
-    private suspend fun startEmergencyFreezerTurnOff(publish: MqttPublisher) = emergencyTurnFreezerOffMutex.withLock {
+    private suspend fun turnFreezerOn(publish: MqttPublisher) = emergencyTurnFreezerOffMutex.withLock {
         emergencyTurnFreezerOffJob?.cancel()
         emergencyTurnFreezerOffJob = GlobalScope.launch {
             delay(emergencyTurnFreezerOffTimeout)
-            log.info(
-                "Emergency turning BeerFreezer off. " +
-                        "No message from sensors for more than $emergencyTurnFreezerOffTimeout"
-            )
-            publish(powerSwitchTopic, "off")
             emergencyTurnFreezerOffMutex.withLock {
+                log.info(
+                    "Emergency turning BeerFreezer off. " +
+                            "No message from sensors for more than $emergencyTurnFreezerOffTimeout"
+                )
+                publish(powerSwitchTopic, "off")
                 emergencyTurnFreezerOffJob = null
             }
         }
+        publish(powerSwitchTopic, "on")
     }
 
     override fun getTopicsToListenTo() =
